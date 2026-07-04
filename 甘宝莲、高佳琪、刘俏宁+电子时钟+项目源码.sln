@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36623.8 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "甘宝莲、高佳琪、刘俏宁+电子时钟+项目源码", "甘宝莲、高佳琪、刘俏宁+电子时钟+项目源码.vcxproj", "{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Debug|ARM64.Build.0 = Debug|ARM64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Debug|x64.ActiveCfg = Debug|x64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Debug|x64.Build.0 = Debug|x64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Debug|x86.ActiveCfg = Debug|Win32
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Debug|x86.Build.0 = Debug|Win32
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Release|ARM64.ActiveCfg = Release|ARM64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Release|ARM64.Build.0 = Release|ARM64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Release|x64.ActiveCfg = Release|x64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Release|x64.Build.0 = Release|x64
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Release|x86.ActiveCfg = Release|Win32
+		{CAF8CFEE-FE00-47D1-8AD6-B964AF90A221}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FD833B39-11AB-4F71-B059-EEC356CE9290}
+	EndGlobalSection
+EndGlobal
