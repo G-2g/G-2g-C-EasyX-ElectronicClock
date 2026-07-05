@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <windows.h>
+
+// 闹钟节点
+typedef struct Alarm {
+    int hour, minute, second;
+    int triggered;
+    struct Alarm* next;
+} Alarm;
+
+Alarm* g_alarmList = NULL;
+
+// 头插法添加
+void AddAlarm(int h, int m, int s) {
+    Alarm* newAlarm = (Alarm*)malloc(sizeof(Alarm));
+    if (!newAlarm) return;
+    newAlarm->hour = h;
+    newAlarm->minute = m;
+    newAlarm->second = s;
+    newAlarm->triggered = 0;
+    newAlarm->next = g_alarmList;
+    g_alarmList = newAlarm;
+}
+
+// 按索引删除
+void DeleteAlarmByIndex(int index) {
+    if (!g_alarmList) return;
+    if (index == 0) {
+        Alarm* tmp = g_alarmList;
+        g_alarmList = g_alarmList->next;
+        free(tmp);
+        return;
+    }
+    Alarm* p = g_alarmList;
+    for (int i = 0; i < index - 1 && p->next; i++) p = p->next;
+    if (p->next) {
+        Alarm* tmp = p->next;
+        p->next = tmp->next;
+        free(tmp);
+    }
+}
+
+int GetAlarmCount() {
+    int cnt = 0;
+    Alarm* p = g_alarmList;
+    while (p) { cnt++; p = p->next; }
+    return cnt;
+}
+
+void PrintAlarms() {
+    printf("闹钟列表：\n");
+    Alarm* p = g_alarmList;
+    int idx = 0;
+    while (p) {
+        printf("%d. %02d:%02d:%02d\n", idx++, p->hour, p->minute, p->second);
+        p = p->next;
+    }
+}
+
+int main() {
+    // 添加两个测试闹钟（当前时间+15秒，+30秒）
+    time_t raw;
+    struct tm* now;
+    time(&raw);
+    now = localtime(&raw);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 15);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 30);
+
+    while (1) {
+        system("cls");   // 清屏
+        time(&raw);
+        now = localtime(&raw);
+        printf("当前时间：%02d:%02d:%02d\n", 
+               now->tm_hour, now->tm_min, now->tm_sec);
+        PrintAlarms();
+        Sleep(1000);
+    }
+    return 0;
+}
