@@ -1,0 +1,184 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <windows.h>
+
+// 闹钟节点
+typedef struct Alarm {
+    int hour, minute, second;
+    int triggered;
+    struct Alarm* next;
+} Alarm;
+
+Alarm* g_alarmList = NULL;
+
+// 头插法添加
+void AddAlarm(int h, int m, int s) {
+    Alarm* newAlarm = (Alarm*)malloc(sizeof(Alarm));
+    if (!newAlarm) return;
+    newAlarm->hour = h;
+    newAlarm->minute = m;
+    newAlarm->second = s;
+    newAlarm->triggered = 0;
+    newAlarm->next = g_alarmList;
+    g_alarmList = newAlarm;
+}
+
+// 按索引删除
+void DeleteAlarmByIndex(int index) {
+    if (!g_alarmList) return;
+    if (index == 0) {
+        Alarm* tmp = g_alarmList;
+        g_alarmList = g_alarmList->next;
+        free(tmp);
+        return;
+    }
+    Alarm* p = g_alarmList;
+    for (int i = 0; i < index - 1 && p->next; i++) p = p->next;
+    if (p->next) {
+        Alarm* tmp = p->next;
+        p->next = tmp->next;
+        free(tmp);
+    }
+}
+
+int GetAlarmCount() {
+    int cnt = 0;
+    Alarm* p = g_alarmList;
+    while (p) { cnt++; p = p->next; }
+    return cnt;
+}
+
+void PrintAlarms() {
+    printf("闹钟列表：\n");
+    Alarm* p = g_alarmList;
+    int idx = 0;
+    while (p) {
+        printf("%d. %02d:%02d:%02d\n", idx++, p->hour, p->minute, p->second);
+        p = p->next;
+    }
+}
+
+// 闹钟监控线程
+DWORD WINAPI AlarmMonitor(LPVOID lpParam) {
+    while (1) {
+        time_t raw;
+        struct tm* now;
+        time(&raw);
+        now = localtime(&raw);
+        int cur_h = now->tm_hour;
+        int cur_m = now->tm_min;
+        int cur_s = now->tm_sec;
+
+        Alarm* prev = NULL, * curr = g_alarmList;
+        while (curr) {
+            if (!curr->triggered &&
+                curr->hour == cur_h &&
+                curr->minute == cur_m &&
+                curr->second == cur_s) {
+                printf("闹钟触发！ %02d:%02d:%02d\n",
+                    curr->hour, curr->minute, curr->second);
+                curr->triggered = 1;
+            }
+            if (curr->triggered) {
+                Alarm* toDel = curr;
+                if (prev) prev->next = curr->next;
+                else g_alarmList = curr->next;
+                curr = curr->next;
+                free(toDel);
+                continue;
+            }
+            prev = curr;
+            curr = curr->next;
+        }
+        Sleep(200);
+    }
+    return 0;
+}
+
+// 键盘监听线程（模拟A添加、D删除、ESC退出）
+DWORD WINAPI KeyboardThread(LPVOID lpParam) {
+    while (1) {
+        if (GetAsyncKeyState('A') & 0x8000) {
+            // 简单添加：当前时间+10秒
+            time_t raw;
+            struct tm* now;
+            time(&raw);
+            now = localtime(&raw);
+            int h = now->tm_hour;
+            int m = now->tm_min;
+            int s = now->tm_sec + 10;
+            if (s >= 60) { s -= 60; m++; }
+            if (m >= 60) { m -= 60; h++; }
+            if (h >= 24) h -= 24;
+            AddAlarm(h, m, s);
+            printf("添加闹钟：%02d:%02d:%02d\n", h, m, s);
+            Sleep(300);
+        }
+        if (GetAsyncKeyState('D') & 0x8000) {
+            int cnt = GetAlarmCount();
+            if (cnt > 0) {
+                DeleteAlarmByIndex(cnt - 1);
+                printf("删除最后一个闹钟\n");
+            }
+            Sleep(300);
+        }
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
+            exit(0);
+        }
+        Sleep(50);
+    }
+    return 0;
+}
+
+int main() {
+    // 添加两个测试闹钟
+    time_t raw;
+    struct tm* now;
+    time(&raw);
+    now = localtime(&raw);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 15);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 30);
+
+    // 创建线程
+    CreateThread(NULL, 0, AlarmMonitor, NULL, 0, NULL);
+    CreateThread(NULL, 0, KeyboardThread, NULL, 0, NULL);
+
+    // 主线程只负责界面刷新（清屏+打印）
+    while (1) {
+        system("cls");
+        time(&raw);
+        now = localtime(&raw);
+        printf("当前时间：%02d:%02d:%02d\n",
+            now->tm_hour, now->tm_min, now->tm_sec);
+        // 打印闹钟列表（简单遍历）
+        Alarm* p = g_alarmList;
+        int idx = 0;
+        while (p) {
+            printf("%d. %02d:%02d:%02d\n", idx++, p->hour, p->minute, p->second);
+            p = p->next;
+        }
+        Sleep(1000);
+    }
+    return 0;
+}
+int main() {
+    // 添加两个测试闹钟（当前时间+15秒，+30秒）
+    time_t raw;
+    struct tm* now;
+    time(&raw);
+    now = localtime(&raw);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 15);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 30);
+
+    while (1) {
+        system("cls");   // 清屏
+        time(&raw);
+        now = localtime(&raw);
+        printf("当前时间：%02d:%02d:%02d\n",
+            now->tm_hour, now->tm_min, now->tm_sec);
+        PrintAlarms();
+        Sleep(1000);
+    }
+    return 0;
+}
