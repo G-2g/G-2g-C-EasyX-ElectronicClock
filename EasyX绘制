@@ -1,0 +1,346 @@
+#include<graphics.h>
+#include <stdio.h>
+#include <time.h>
+#include <windows.h>
+#include <math.h>
+
+// 闹钟节点
+typedef struct Alarm {
+    int hour, minute, second;
+    int triggered;
+    struct Alarm* next;
+} Alarm;
+
+Alarm* g_alarmList = NULL;
+
+// 头插法添加
+void AddAlarm(int h, int m, int s) {
+    Alarm* newAlarm = (Alarm*)malloc(sizeof(Alarm));
+    if (!newAlarm) return;
+    newAlarm->hour = h;
+    newAlarm->minute = m;
+    newAlarm->second = s;
+    newAlarm->triggered = 0;
+    newAlarm->next = g_alarmList;
+    g_alarmList = newAlarm;
+}
+
+// 按索引删除
+void DeleteAlarmByIndex(int index) {
+    if (!g_alarmList) return;
+    if (index == 0) {
+        Alarm* tmp = g_alarmList;
+        g_alarmList = g_alarmList->next;
+        free(tmp);
+        return;
+    }
+    Alarm* p = g_alarmList;
+    for (int i = 0; i < index - 1 && p->next; i++) p = p->next;
+    if (p->next) {
+        Alarm* tmp = p->next;
+        p->next = tmp->next;
+        free(tmp);
+    }
+}
+
+int GetAlarmCount() {
+    int cnt = 0;
+    Alarm* p = g_alarmList;
+    while (p) { cnt++; p = p->next; }
+    return cnt;
+}
+
+void PrintAlarms() {
+    printf("闹钟列表：\n");
+    Alarm* p = g_alarmList;
+    int idx = 0;
+    while (p) {
+        printf("%d. %02d:%02d:%02d\n", idx++, p->hour, p->minute, p->second);
+        p = p->next;
+    }
+}
+
+//图行绘制
+//  绘制指针表盘
+void DrawClockFace(int h, int m, int s) {
+    int cx = 180, cy = 150;  // 表盘中心（左移以腾出空间）
+    int radius = 120;        // 表盘半径
+
+    // 1. 绘制表盘外圈
+    setcolor(RGB(200, 200, 200));
+    setlinestyle(PS_SOLID, 3);
+    circle(cx, cy, radius);
+    circle(cx, cy, radius - 5);
+
+    // 2. 绘制刻度（50个，每5个一大格）
+    setlinestyle(PS_SOLID, 1);
+    for (int i = 0; i < 60; i++) {
+        int angle = i * 6;             //每格6度
+        double rad = angle * 3.14159 / 180.0;
+        int innerRadius = (i % 5 == 0) ? radius - 20 : radius - 10;
+        //外端点
+        int x1 = cx + (int)((radius - 5) * sin(rad));
+        int y1 = cy - (int)((radius - 5) * cos(rad));
+        //内端点
+        int x2 = cx + (int)(innerRadius * sin(rad));
+        int y2 = cy - (int)(innerRadius * cos(rad));
+
+        if (i % 5 == 0) {
+            setcolor(RGB(255, 255, 255));     //大刻度白色
+            setlinestyle(PS_SOLID, 2);
+        }
+        else {
+            setcolor(RGB(150, 150, 150));     //小刻度灰色
+            setlinestyle(PS_SOLID, 1);
+        }
+        line(x1, y1, x2, y2);
+    }
+
+    // 3. 绘制数字（1-12）
+    settextstyle(20, 0, _T("Arial"));
+    setcolor(RGB(255, 255, 255));
+    for (int i = 1; i <= 12; i++) {
+        double rad = (i * 30 - 90) * 3.14159 / 180.0;
+        int x = cx + (int)((radius - 30) * cos(rad));
+        int y = cy + (int)((radius - 30) * sin(rad));
+        TCHAR numStr[5];
+        _stprintf_s(numStr, _T("%d"), i);
+        outtextxy(x - 10, y - 10, numStr);
+    }
+
+    // 4. 绘制中心点
+    setcolor(RGB(255, 100, 0));
+    setfillcolor(RGB(255, 100, 0));
+    fillcircle(cx, cy, 6);
+
+    // 5. 绘制时针（小时，橙色，粗线）
+    double hourAngle = (h % 12) * 30 + m * 0.5 + s * 0.5 / 60;
+    double hourRad = (hourAngle - 90) * 3.14159 / 180.0;
+    int hourLen = (int)(radius * 0.5);
+    setcolor(RGB(255, 100, 0));
+    setlinestyle(PS_SOLID, 5);
+    line(cx, cy,
+        cx + (int)(hourLen * cos(hourRad)),
+        cy + (int)(hourLen * sin(hourRad)));
+
+    // 6. 绘制分针（分钟，蓝色，中线）
+    double minuteAngle = m * 6 + s * 0.1;
+    double minuteRad = (minuteAngle - 90) * 3.14159 / 180.0;
+    int minuteLen = (int)(radius * 0.7);
+    setcolor(RGB(100, 200, 255));
+    setlinestyle(PS_SOLID, 3);
+    line(cx, cy,
+        cx + (int)(minuteLen * cos(minuteRad)),
+        cy + (int)(minuteLen * sin(minuteRad)));
+
+    // 7. 绘制秒针（秒钟，红色，细线）
+    double secondAngle = s * 6;
+    double secondRad = (secondAngle - 90) * 3.14159 / 180.0;
+    int secondLen = (int)(radius * 0.8);
+    setcolor(RGB(255, 50, 50));
+    setlinestyle(PS_SOLID, 1);
+    line(cx, cy,
+        cx + (int)(secondLen * cos(secondRad)),
+        cy + (int)(secondLen * sin(secondRad)));
+
+    // 8. 显示数字时间（在表盘下方）
+    settextstyle(16, 0, _T("Consolas"));
+    setcolor(RGB(200, 200, 200));
+    TCHAR timeStr[20];
+    _stprintf_s(timeStr, _T("%02d:%02d:%02d"), h, m, s);
+    outtextxy(cx - 30, cy + radius + 20, timeStr);
+
+    // 9. 显示模式提示
+    settextstyle(12, 0, _T("宋体"));
+    setcolor(RGB(150, 150, 150));
+    outtextxy(cx - 40, cy + radius + 50, _T("按 T 切换数字/表盘"));
+}
+
+//绘制界面
+void DrawInterface(int h, int m, int s) {
+    cleardevice();
+
+    //上半部分：显示时间
+    if (displayMode == 0) {
+        // 数字显示模式
+        settextstyle(64, 0, _T("Consolas"));
+        setcolor(RGB(255, 100, 0));
+        TCHAR timeStr[20];
+        _stprintf_s(timeStr, _T("%02d:%02d:%02d"), h, m, s);
+        outtextxy(150, 60, timeStr);
+
+        // 显示模式提示（提示文字）
+        settextstyle(16, 0, _T("宋体"));
+        setcolor(RGB(150, 150, 150));
+        outtextxy(160, 140, _T("按 T 切换数字/表盘"));
+    }
+    else {
+        // 指针表盘模式
+        DrawClockFace(h, m, s);
+    }
+
+    // 下半部分：闹钟列表
+    int listStartY;
+    if (displayMode == 0) {
+        // 数字模式：列表从Y=310开始（原位置）
+        listStartY = 310;
+    }
+    else {
+        // 表盘模式：列表从Y=430开始
+        listStartY = 430;
+    }
+
+    // 绘制分隔线
+    setcolor(RGB(100, 100, 100));
+    setlinestyle(PS_SOLID, 1);
+    line(20, listStartY - 40, 530, listStartY - 40);
+
+    // 标题
+    settextstyle(16, 0, _T("宋体"));
+    setcolor(RGB(200, 200, 200));
+    outtextxy(20, listStartY - 30, _T("闹钟列表 (A-添加, D-删除, ESC-退出):"));
+
+    // 显示闹钟数量
+    int cnt = GetAlarmCount();
+    TCHAR countStr[50];
+    _stprintf_s(countStr, _T("共 %d 个闹钟"), cnt);
+    settextstyle(12, 0, _T("宋体"));
+    setcolor(RGB(150, 150, 150));
+    outtextxy(350, listStartY - 28, countStr);
+
+    // 遍历链表，绘制闹钟列表（每个闹钟占一行）
+    EnterCriticalSection(&cs);
+    Alarm* p = g_alarmList;
+    int y = listStartY;  // 起始Y坐标
+    int idx = 0;
+    int maxDisplay = 4;  // 最多显示4个闹钟（根据窗口高度，避免溢出）
+
+    while (p && idx < maxDisplay) {
+        // 绘制闹钟序号和时间
+        TCHAR buf[128];
+        _stprintf_s(buf, _T("%d. %02d:%02d:%02d"), idx, p->hour, p->minute, p->second);
+
+        // 如果已触发，显示标记
+        if (p->triggered) {
+            _stprintf_s(buf, _T("%d. %02d:%02d:%02d [已触发]"), idx, p->hour, p->minute, p->second);
+            setcolor(RGB(100, 100, 100));  // 灰色显示
+        }
+        else {
+            setcolor(RGB(255, 255, 255));  // 白色显示
+        }
+
+        settextstyle(16, 0, _T("Consolas"));
+        outtextxy(30, y, buf);
+
+        y += 30;  // 每行30像素
+        idx++;
+        p = p->next;
+    }
+    LeaveCriticalSection(&cs);
+
+    // 如果闹钟数量超过显示上限，提示还有未显示的
+    if (cnt > maxDisplay) {
+        settextstyle(12, 0, _T("宋体"));
+        setcolor(RGB(150, 150, 150));
+        TCHAR tipStr[50];
+        _stprintf_s(tipStr, _T("... 还有 %d 个闹钟未显示"), cnt - maxDisplay);
+        outtextxy(30, y, tipStr);
+    }
+
+    FlushBatchDraw();    //双缓冲刷新，将内存绘制一次性显示到屏幕
+}
+
+// 闹钟监控线程
+DWORD WINAPI AlarmMonitor(LPVOID lpParam) {
+    while (1) {
+        time_t raw;
+        struct tm* now;
+        time(&raw);
+        now = localtime(&raw);
+        int cur_h = now->tm_hour;
+        int cur_m = now->tm_min;
+        int cur_s = now->tm_sec;
+
+        Alarm* prev = NULL, * curr = g_alarmList;
+        while (curr) {
+            if (!curr->triggered &&
+                curr->hour == cur_h &&
+                curr->minute == cur_m &&
+                curr->second == cur_s) {
+                printf("闹钟触发！ %02d:%02d:%02d\n",
+                    curr->hour, curr->minute, curr->second);
+                curr->triggered = 1;
+            }
+            if (curr->triggered) {
+                Alarm* toDel = curr;
+                if (prev) prev->next = curr->next;
+                else g_alarmList = curr->next;
+                curr = curr->next;
+                free(toDel);
+                continue;
+            }
+            prev = curr;
+            curr = curr->next;
+        }
+        Sleep(200);
+    }
+    return 0;
+}
+
+// 键盘监听线程（模拟A添加、D删除、ESC退出）
+DWORD WINAPI KeyboardThread(LPVOID lpParam) {
+    while (1) {
+        if (GetAsyncKeyState('A') & 0x8000) {
+            // 简单添加：当前时间+10秒
+            time_t raw;
+            struct tm* now;
+            time(&raw);
+            now = localtime(&raw);
+            int h = now->tm_hour;
+            int m = now->tm_min;
+            int s = now->tm_sec + 10;
+            if (s >= 60) { s -= 60; m++; }
+            if (m >= 60) { m -= 60; h++; }
+            if (h >= 24) h -= 24;
+            AddAlarm(h, m, s);
+            printf("添加闹钟：%02d:%02d:%02d\n", h, m, s);
+            Sleep(300);
+        }
+        if (GetAsyncKeyState('D') & 0x8000) {
+            int cnt = GetAlarmCount();
+            if (cnt > 0) {
+                DeleteAlarmByIndex(cnt - 1);
+                printf("删除最后一个闹钟\n");
+            }
+            Sleep(300);
+        }
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
+            exit(0);
+        }
+        Sleep(50);
+    }
+    return 0;
+}
+
+int main() {
+    initgraph(550, 580);          
+    setbkcolor(BLACK);       
+    BeginBatchDraw();
+
+    // 预设测试闹钟
+    time_t raw;
+    struct tm* now;
+    time(&raw);
+    now = localtime(&raw);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 15);
+    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 30);
+
+    CreateThread(NULL, 0, AlarmMonitor, NULL, 0, NULL);
+    CreateThread(NULL, 0, KeyboardThread, NULL, 0, NULL);
+
+    while (1) {
+        time(&raw);
+        now = localtime(&raw);
+        DrawInterface(now->tm_hour, now->tm_min, now->tm_sec);
+        Sleep(1000);
+    }
