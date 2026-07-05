@@ -162,23 +162,4 @@ int main() {
     }
     return 0;
 }
-int main() {
-    // 添加两个测试闹钟（当前时间+15秒，+30秒）
-    time_t raw;
-    struct tm* now;
-    time(&raw);
-    now = localtime(&raw);
-    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 15);
-    AddAlarm(now->tm_hour, now->tm_min, now->tm_sec + 30);
 
-    while (1) {
-        system("cls");   // 清屏
-        time(&raw);
-        now = localtime(&raw);
-        printf("当前时间：%02d:%02d:%02d\n",
-            now->tm_hour, now->tm_min, now->tm_sec);
-        PrintAlarms();
-        Sleep(1000);
-    }
-    return 0;
-}
